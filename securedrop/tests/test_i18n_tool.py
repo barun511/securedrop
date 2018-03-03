@@ -239,6 +239,38 @@ class TestI18NTool(object):
             '--documentation-dir', str(tmpdir)])
         assert 'l10n.txt already up to date' in caplog.text
 
+    def test_update_from_weblate(self, tmpdir):
+        d = str(tmpdir)
+        i18n_tool.sh("""
+        set -ex
+        for r in i18n securedrop ; do
+           mkdir {d}/$r
+           cd {d}/$r
+           git init
+           git config user.email "you@example.com"
+           git config user.name "Your Name"
+        done
+        cp -a {o}/i18n/* {d}/i18n
+        cd {d}/i18n
+        git add securedrop install_files
+        git commit -m 'init' -a
+        git checkout -b i18n master
+        """.format(o=self.dir,
+                   d=d))
+        i18n_tool.I18NTool().main([
+            '--verbose',
+            'update-from-weblate',
+            '--root', join(str(tmpdir), 'securedrop'),
+            '--url', join(str(tmpdir), 'i18n'),
+            '--supported-languages', 'nl',
+        ])
+        i18n_tool.sh("""
+        set -ex
+        cd {d}/securedrop
+        git remote | grep --quiet i18n
+        git show | grep 'add nl'
+        """.format(d=d))
+
 
 class TestSh(object):
 
